@@ -82,7 +82,9 @@ def create_app(test_config=None):
             question = body.get('question')
             answer = body.get('answer')
             difficulty = body.get('difficulty')
-            category = int(body.get('category')) + 1
+            category = body.get('category')
+            if isinstance(category, str):
+                category = int(category) + 1
             question_object = Question(question=question, answer=answer, difficulty=difficulty, category=category)
             question_object.insert()
             return jsonify({
@@ -110,10 +112,10 @@ def create_app(test_config=None):
         previous_questions = body.get('previous_questions')
         category = Category.query.filter(Category.type.ilike(f'%{quiz_category}%')).one_or_none()
         if category:
-            questions = [question.format() for question in Question.query.filter_by(category=category.id).all()]
+            questions = Question.query.filter_by(category=category.id).all()
         else:
-            questions = [question.format() for question in Question.query.all()]
-        questions = [question for question in questions if question.get('id') not in previous_questions]
+            questions = Question.query.all()
+        questions = [question.format() for question in questions if question.id not in previous_questions]
         if questions:
             return jsonify(
                 {
@@ -125,13 +127,36 @@ def create_app(test_config=None):
                  'question': False,
                  })
 
+    @app.errorhandler(404)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 404, "message": "resource not found"}),
+            404,
+        )
 
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return (
+            jsonify({"success": False, "error": 422, "message": "unprocessable"}),
+            422,
+        )
 
-    """
-    @TODO:
-    Create error handlers for all expected errors
-    including 404 and 422.
-    """
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({"success": False, "error": 400, "message": "bad request"}), 400
 
+    @app.errorhandler(405)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 405, "message": "method not allowed"}),
+            405,
+        )
+
+    @app.errorhandler(500)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 500, "message": "Internal server error"}),
+            500,
+        )
     return app
 

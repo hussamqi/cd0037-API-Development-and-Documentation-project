@@ -130,7 +130,7 @@ class QuizView extends Component {
     return (
       <div className='quiz-play-holder'>
         <div className='final-header'>
-          Your Final Score is {this.state.numCorrect}
+          Your Final Score is {this.state.numCorrect} / {this.state.previousQuestions.length}
         </div>
         <div className='play-again button' onClick={this.restartGame}>
           Play Again?
