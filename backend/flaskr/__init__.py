@@ -35,27 +35,10 @@ def create_app(test_config=None):
         )
         return response
 
-    """
-    @TODO:
-    Create an endpoint to handle GET requests
-    for all available categories.
-    """
     @app.route("/categories")
-    def retrieve_books():
-        return jsonify({'categories': [category.format() for category in Category.query.all()]})
+    def retrieve_categories():
+        return jsonify({'categories': [category.type for category in Category.query.all()]})
 
-    """
-    @TODO:
-    Create an endpoint to handle GET requests for questions,
-    including pagination (every 10 questions).
-    This endpoint should return a list of questions,
-    number of total questions, current category, categories.
-
-    TEST: At this point, when you start the application
-    you should see questions and categories generated,
-    ten questions per page and pagination at the bottom of the screen for three pages.
-    Clicking on the page numbers should update the questions.
-    """
     @app.route("/questions")
     def retrieve_questions():
         selection = Question.query.all()
@@ -71,56 +54,78 @@ def create_app(test_config=None):
              'current_category': current_category
              })
 
-    """
-    @TODO:
-    Create an endpoint to DELETE question using a question ID.
+    @app.route("/questions/<int:question_id>", methods=["DELETE"])
+    def delete_question(question_id):
+        question = Question.query.filter_by(id=question_id).one_or_none()
+        if question:
+            question.delete()
+            return jsonify({
+                'success': True
+            })
 
-    TEST: When you click the trash icon next to a question, the question will be removed.
-    This removal will persist in the database and when you refresh the page.
-    """
+    @app.route("/questions", methods=["POST"])
+    def create_question():
+        body = request.get_json()
+        if 'searchTerm' in body.keys():
+            selection = Question.query.filter(Question.question.ilike(f'%{body.get("searchTerm")}%')).all()
+            if selection:
+                questions = paginate_questions(request, selection)
+                current_category_ids = [question.get('category') for question in questions]
+                current_category = [category.format() for category in
+                                    Category.query.filter(Category.id.in_(current_category_ids)).all()]
+                return jsonify(
+                    {'questions': questions,
+                     'total_questions': len(selection),
+                     'current_category': current_category
+                     })
+        else:
+            question = body.get('question')
+            answer = body.get('answer')
+            difficulty = body.get('difficulty')
+            category = int(body.get('category')) + 1
+            question_object = Question(question=question, answer=answer, difficulty=difficulty, category=category)
+            question_object.insert()
+            return jsonify({
+                'success': True
+            })
 
-    """
-    @TODO:
-    Create an endpoint to POST a new question,
-    which will require the question and answer text,
-    category, and difficulty score.
+    @app.route("/categories/<int:category_id>/questions")
+    def retrieve_questions_by_category(category_id):
+        selection = Question.query.filter_by(category=category_id+1).all()
+        if selection:
+            questions = paginate_questions(request, selection)
+            current_category_ids = [question.get('category') for question in questions]
+            current_category = [category.format() for category in
+                                Category.query.filter(Category.id.in_(current_category_ids)).all()]
+            return jsonify(
+                {'questions': questions,
+                 'total_questions': len(selection),
+                 'current_category': current_category
+                 })
 
-    TEST: When you submit a question on the "Add" tab,
-    the form will clear and the question will appear at the end of the last page
-    of the questions list in the "List" tab.
-    """
+    @app.route("/quizzes", methods=["POST"])
+    def get_quizzes():
+        body = request.get_json()
+        quiz_category = body.get('quiz_category').get('type')
+        previous_questions = body.get('previous_questions')
+        category = Category.query.filter(Category.type.ilike(f'%{quiz_category}%')).one_or_none()
+        if category:
+            questions = [question.format() for question in Question.query.filter_by(category=category.id).all()]
+        else:
+            questions = [question.format() for question in Question.query.all()]
+        questions = [question for question in questions if question.get('id') not in previous_questions]
+        if questions:
+            return jsonify(
+                {
+                 'question': random.choice(questions),
+                 })
+        else :
+            return jsonify(
+                {
+                 'question': False,
+                 })
 
-    """
-    @TODO:
-    Create a POST endpoint to get questions based on a search term.
-    It should return any questions for whom the search term
-    is a substring of the question.
 
-    TEST: Search by any phrase. The questions list will update to include
-    only question that include that string within their question.
-    Try using the word "title" to start.
-    """
-
-    """
-    @TODO:
-    Create a GET endpoint to get questions based on category.
-
-    TEST: In the "List" tab / main screen, clicking on one of the
-    categories in the left column will cause only questions of that
-    category to be shown.
-    """
-
-    """
-    @TODO:
-    Create a POST endpoint to get questions to play the quiz.
-    This endpoint should take category and previous question parameters
-    and return a random questions within the given category,
-    if provided, and that is not one of the previous questions.
-
-    TEST: In the "Play" tab, after a user selects "All" or a category,
-    one question at a time is displayed, the user is allowed to answer
-    and shown whether they were correct or not.
-    """
 
     """
     @TODO:
