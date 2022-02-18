@@ -40,7 +40,7 @@ def create_app(test_config=None):
         categories = Category.query.all()
         if not categories:
             abort(404)
-        return jsonify({'categories': [category.type for category in categories]})
+        return jsonify({'categories': {category.id: category.type for category in categories}})
 
     @app.route("/questions")
     def retrieve_questions():
@@ -49,7 +49,7 @@ def create_app(test_config=None):
             abort(404)
         current_questions = paginate_questions(request, selection)
         current_category_ids = [question.get('category') for question in current_questions]
-        categories = [category.type for category in Category.query.all()]
+        categories = {category.id: category.type for category in Category.query.order_by(Category.id).all()}
         current_category = [category.format() for category in
                             Category.query.filter(Category.id.in_(current_category_ids)).all()]
         return jsonify(
@@ -94,8 +94,6 @@ def create_app(test_config=None):
                 answer = body.get('answer')
                 difficulty = body.get('difficulty')
                 category = body.get('category')
-                if isinstance(category, str):
-                    category = int(category) + 1
                 question_object = Question(question=question, answer=answer, difficulty=difficulty, category=category)
                 question_object.insert()
                 return jsonify({
@@ -106,7 +104,7 @@ def create_app(test_config=None):
 
     @app.route("/categories/<int:category_id>/questions")
     def retrieve_questions_by_category(category_id):
-        selection = Question.query.filter_by(category=category_id+1).all()
+        selection = Question.query.filter_by(category=category_id).all()
         if selection:
             questions = paginate_questions(request, selection)
             current_category_ids = [question.get('category') for question in questions]
