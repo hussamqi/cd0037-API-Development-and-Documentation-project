@@ -17,10 +17,13 @@ like science, history, sports ..etc
 ### Pre-requisites and Local Development
 
 Developers using this project should already have Python3, pip and node installed on their local machines.
+It's recommended to use virtual environment before installing requirements.
 
 #### Backend
 
 From the backend folder run `pip install requirements.txt`. All required packages are included in the requirements file. 
+
+create .env file in the backend directory, copy the content from .env.example file and update the values with your DB host, port, user, password, name
 
 To run the application run the following commands: 
 ```
