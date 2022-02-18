@@ -45,9 +45,9 @@ def create_app(test_config=None):
     @app.route("/questions")
     def retrieve_questions():
         selection = Question.query.all()
-        if not selection:
-            abort(404)
         current_questions = paginate_questions(request, selection)
+        if not current_questions:
+            abort(404)
         current_category_ids = [question.get('category') for question in current_questions]
         categories = {category.id: category.type for category in Category.query.order_by(Category.id).all()}
         current_category = [category.format() for category in
@@ -70,24 +70,23 @@ def create_app(test_config=None):
                 })
             except:
                 abort(422)
+        else:
+            abort(404)
 
     @app.route("/questions", methods=["POST"])
     def create_question():
         body = request.get_json()
         if 'searchTerm' in body.keys():
             selection = Question.query.filter(Question.question.ilike(f'%{body.get("searchTerm")}%')).all()
-            if selection:
-                questions = paginate_questions(request, selection)
-                current_category_ids = [question.get('category') for question in questions]
-                current_category = [category.format() for category in
+            questions = paginate_questions(request, selection)
+            current_category_ids = [question.get('category') for question in questions]
+            current_category = [category.format() for category in
                                     Category.query.filter(Category.id.in_(current_category_ids)).all()]
-                return jsonify(
+            return jsonify(
                     {'questions': questions,
                      'total_questions': len(selection),
                      'current_category': current_category
                      })
-            else:
-                abort(404)
         else:
             try:
                 question = body.get('question')
@@ -119,7 +118,7 @@ def create_app(test_config=None):
             abort(404)
 
     @app.route("/quizzes", methods=["POST"])
-    def get_quizzes():
+    def create_quiz():
         body = request.get_json()
         quiz_category = body.get('quiz_category').get('type')
         previous_questions = body.get('previous_questions')
