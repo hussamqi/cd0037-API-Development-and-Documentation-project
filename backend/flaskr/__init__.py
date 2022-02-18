@@ -37,11 +37,16 @@ def create_app(test_config=None):
 
     @app.route("/categories")
     def retrieve_categories():
-        return jsonify({'categories': [category.type for category in Category.query.all()]})
+        categories = Category.query.all()
+        if not categories:
+            abort(404)
+        return jsonify({'categories': [category.type for category in categories]})
 
     @app.route("/questions")
     def retrieve_questions():
         selection = Question.query.all()
+        if not selection:
+            abort(404)
         current_questions = paginate_questions(request, selection)
         current_category_ids = [question.get('category') for question in current_questions]
         categories = [category.type for category in Category.query.all()]
@@ -58,10 +63,13 @@ def create_app(test_config=None):
     def delete_question(question_id):
         question = Question.query.filter_by(id=question_id).one_or_none()
         if question:
-            question.delete()
-            return jsonify({
-                'success': True
-            })
+            try:
+                question.delete()
+                return jsonify({
+                    'success': True
+                })
+            except:
+                abort(422)
 
     @app.route("/questions", methods=["POST"])
     def create_question():
@@ -78,18 +86,23 @@ def create_app(test_config=None):
                      'total_questions': len(selection),
                      'current_category': current_category
                      })
+            else:
+                abort(404)
         else:
-            question = body.get('question')
-            answer = body.get('answer')
-            difficulty = body.get('difficulty')
-            category = body.get('category')
-            if isinstance(category, str):
-                category = int(category) + 1
-            question_object = Question(question=question, answer=answer, difficulty=difficulty, category=category)
-            question_object.insert()
-            return jsonify({
-                'success': True
-            })
+            try:
+                question = body.get('question')
+                answer = body.get('answer')
+                difficulty = body.get('difficulty')
+                category = body.get('category')
+                if isinstance(category, str):
+                    category = int(category) + 1
+                question_object = Question(question=question, answer=answer, difficulty=difficulty, category=category)
+                question_object.insert()
+                return jsonify({
+                    'success': True
+                })
+            except:
+                abort(422)
 
     @app.route("/categories/<int:category_id>/questions")
     def retrieve_questions_by_category(category_id):
@@ -104,6 +117,8 @@ def create_app(test_config=None):
                  'total_questions': len(selection),
                  'current_category': current_category
                  })
+        else:
+            abort(404)
 
     @app.route("/quizzes", methods=["POST"])
     def get_quizzes():
@@ -121,7 +136,7 @@ def create_app(test_config=None):
                 {
                  'question': random.choice(questions),
                  })
-        else :
+        else:
             return jsonify(
                 {
                  'question': False,
