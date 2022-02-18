@@ -143,7 +143,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data["question"])
         self.assertEqual(len(data["question"].keys()), 5)
 
-    def test_requesting_byeond_available_questions_in_create_quiz(self):
+    def test_requesting_beyond_available_questions_in_create_quiz(self):
         questions_ids = [ question[0] for question in Question.query.with_entities(Question.id).all()]
         self.new_quiz['previous_questions'] = questions_ids
         res = self.client().post("/quizzes", json=self.new_quiz)
